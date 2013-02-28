@@ -3,15 +3,15 @@
   "description": "Application to flash lots of twitter pictures across the screen",
   "version": "0.0.1",
   "author": {
-    "name": "Sam Decrock",
-    "url": "https://github.com/SamDecrock/"
+    "name": "MiX",
+    "url": "https://github.com/mixbe/"
   },
   "bugs": {
-    "url": "https://github.com/SamDecrock/node-download-complete-page/issues"
+    "url": "https://github.com/mixbe/node-a-thousand-twitter-pictures/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/SamDecrock/node-download-complete-page.git"
+    "url": "git://github.com/mixbe/node-a-thousand-twitter-pictures.git"
   },
   "main": "./app",
   "licenses": [
