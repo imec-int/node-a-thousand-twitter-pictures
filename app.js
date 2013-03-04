@@ -153,10 +153,12 @@ function init(){
 
 
 function addPicture(picture){
-	console.log("Adding " + picture);
-	State.pictures.push(picture);
-	// stuur maar direct naar de client ook:
-	io.sockets.emit('newpicture', {url: picture});
+	if(picture){
+		console.log("Adding " + picture);
+		State.pictures.push(picture);
+		// stuur maar direct naar de client ook:
+		io.sockets.emit('newpicture', {url: picture});
+	}
 }
 
 /**
