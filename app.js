@@ -3,7 +3,8 @@ var OAuth       = require('oauth').OAuth;
 var querystring = require('querystring');
 var config = require('./config');
 var util = require('util');
-
+var async = require('async');
+var cheerio = require('cheerio');
 
 // authentication for other twitter requests
 var twitterOAuth = new OAuth(
@@ -17,9 +18,14 @@ var twitterOAuth = new OAuth(
 );
 
 
+findTwitterPictures("#food", function (err, pictures){
+	extractInstagramUrls(pictures.instagram, function (err, instagramUrls){
+		if(err) return console.log(err);
 
-findTwitterPictures("#quizmequick", function (err, pictures){
-	console.log(pictures);
+		pictures.instagram = instagramUrls;
+
+		console.log(pictures);
+	});
 });
 
 
@@ -64,7 +70,7 @@ function findTwitterEntities(searchterm, callback) {
 	var parameters = querystring.stringify({
 		q: searchterm,
 		result_type: 'mixed',
-		count: 20,
+		count: 4,
 		include_entities: true
 	});
 
@@ -83,4 +89,47 @@ function findTwitterEntities(searchterm, callback) {
 		}
 	);
 }
+
+
+function extractInstagramUrls(urls, callback){
+	var extractedUrls = [];
+
+	async.forEach(urls, function (url, c){
+		extractInstagramUrl(url, function (err, extractedUrl){
+			if(err) return c(err);
+			extractedUrls.push(extractedUrl);
+			c(null);
+		});
+	}, function (err){
+		callback(null, extractedUrls);
+	});
+}
+
+function extractInstagramUrl(url, callback){
+	httpreq.get(url, function (err, res){
+		if(err) return callback(err);
+
+		// check for redirects:
+		if(res.headers.location){
+			extractInstagramUrl(res.headers.location, callback);
+		}else{
+			var $ = cheerio.load(res.body);
+			var extractedUrl = $("#media_photo .photo").attr('src');
+			callback(null, extractedUrl);
+		}
+	});
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 

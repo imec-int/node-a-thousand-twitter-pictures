@@ -22,6 +22,8 @@
   ],
   "dependencies": {
     "httpreq": "~0.2.3",
-    "oauth": "~0.9.8"
+    "oauth": "~0.9.8",
+    "async": "~0.2.6",
+    "cheerio": "~0.10.7"
   }
 }
