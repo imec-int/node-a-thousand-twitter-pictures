@@ -1,6 +1,8 @@
 App = {
 	imageElements: [],
 
+	intervalTime: 50,
+
 	pageloaded: function() {
 		console.log("page loaded");
 
@@ -17,7 +19,9 @@ App = {
 			App.addPicture(App.alreadyfoundpictures[i]);
 		}
 
-		App.flashImages();
+		$("#start").click(function (event){
+			App.flashImages();
+		});
 	},
 
 	addPicture: function(url){
@@ -45,7 +49,7 @@ App = {
 
 		setTimeout(function (){
 			App.showNextImage(i)
-		}, 100);
+		}, App.intervalTime);
 	}
 };
 

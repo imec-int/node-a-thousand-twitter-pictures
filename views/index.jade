@@ -2,7 +2,7 @@
 html
 	head
 		meta(name='viewport', content='initial-scale=1.0, user-scalable=no')
-		title Title
+		title #{title}
 		link(rel='stylesheet', href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-combined.min.css")
 		link(rel='stylesheet', href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.0/css/bootstrap-responsive.min.css")
 		link(rel='stylesheet', href="/stylesheets/style.css")
@@ -14,7 +14,9 @@ html
 		script(type='text/javascript', src='/server.js')
 
 	body
-		p A thousand Twitter pictures
+		p #{title}
 
 		#pictures
+
+		button.btn.btn-success#start Start
 

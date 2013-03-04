@@ -57,7 +57,6 @@ var twitterOAuth = new OAuth(
 
 // some variable to hold the state of the app
 var State = {
-	searchterm: "#picture",
 	pictures: []
 };
 
@@ -84,9 +83,9 @@ init();
 function init(){
 	// 1.) Zoek naar pictures met bepaald hashtag:
 	var parameters = querystring.stringify({
-		q: State.searchterm,
+		q: config.app.searchterms.join(' OR '),
 		result_type: 'mixed',
-		count: 20,
+		count: 100,
 		include_entities: true
 	});
 
@@ -117,7 +116,7 @@ function init(){
 
 	// 2.) Luister ook naar nieuwe pictures die binnenkomen:
 	var parameters = querystring.stringify({
-		track: State.searchterm
+		track: config.app.searchterms.join(',')
 	});
 
 	var twitterhose = twitterOAuth.get('https://stream.twitter.com/1.1/statuses/filter.json?' + parameters, config.twitter.token, config.twitter.secret);
