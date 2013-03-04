@@ -1,10 +1,45 @@
-var httpreq = require('httpreq');
+/**
+ * Init
+ */
+var httpreq 	= require('httpreq');
 var OAuth       = require('oauth').OAuth;
 var querystring = require('querystring');
-var config = require('./config');
-var util = require('util');
-var async = require('async');
-var cheerio = require('cheerio');
+var config 		= require('./config');
+var util 		= require('util');
+var async 		= require('async');
+var cheerio 	= require('cheerio');
+var _ 			= require('underscore');
+var express 	= require('express');
+var http 		= require('http')
+var path 		= require('path');
+var socketio 	= require('socket.io');
+
+var app = express();
+
+app.configure(function(){
+	app.set('port', process.env.PORT || 3000);
+	app.set('views', __dirname + '/views');
+	app.set('view engine', 'jade');
+	app.use(express.favicon());
+	app.use(express.logger('dev'));
+	app.use(express.bodyParser());
+	app.use(express.methodOverride());
+	app.use(express.cookieParser('123456789987654321'));
+	app.use(express.session());
+	app.use(app.router);
+	app.use(require('stylus').middleware(__dirname + '/public'));
+	app.use(express.static(path.join(__dirname, 'public')));
+});
+
+app.configure('development', function(){
+	app.use(express.errorHandler());
+});
+
+var server = http.createServer(app).listen(app.get('port'), function(){
+	console.log("Express server listening on port " + app.get('port'));
+});
+
+var io = require('socket.io').listen(server);
 
 // authentication for other twitter requests
 var twitterOAuth = new OAuth(
@@ -17,16 +52,70 @@ var twitterOAuth = new OAuth(
 	"HMAC-SHA1"
 );
 
+// some variable to hold the state of the app
+var State = {
+	searchterm: "#eten",
+	pictures: []
+};
 
-findTwitterPictures("#food", function (err, pictures){
-	extractInstagramUrls(pictures.instagram, function (err, instagramUrls){
-		if(err) return console.log(err);
+/**
+ * Functies en andere logica
+ */
 
-		pictures.instagram = instagramUrls;
-
-		console.log(pictures);
+// Webserver root page:
+app.get('/', function (req, res){
+	res.render('index', {
+		title: 'A thousand twitter pictures'
 	});
 });
+
+// Javascript die alle urls bevat van pictures die al gevonden zijn:
+app.get('/server.js', function (req, res){
+	res.send("App.alreadyfoundpictures = " + JSON.stringify(State.pictures) + ";");
+});
+
+
+// Begin met pictures te zoeken:
+// Doet dit iedere 20 seconden:
+findMorePictures();
+setInterval(findMorePictures, 1000*20);
+
+function findMorePictures(){
+	searchPictures(State.searchterm, function (err, pictures){
+		for(var i in pictures){
+			var picture = pictures[i];
+
+			if(!_.contains(State.pictures, picture)){
+				console.log("Adding " + picture);
+				State.pictures.push(picture);
+
+				// stuur maar direct naar de client ook:
+				io.sockets.emit('newpicture', {url: picture});
+			}
+		}
+	});
+}
+
+
+
+function searchPictures(searchterm, callback){
+
+	var allpictures = [];
+
+	findTwitterPictures(searchterm, function (err, pictures){
+		if(err) return callback(err);
+
+		allpictures = allpictures.concat(pictures.pictures);
+		extractInstagramUrls(pictures.instagram, function (err, instagramUrls){
+			if(err) return callback(err);
+
+			allpictures = allpictures.concat(instagramUrls);
+
+
+			return callback(null, allpictures);
+		});
+	});
+}
 
 
 function findTwitterPictures(searchterm, callback) {
@@ -70,7 +159,7 @@ function findTwitterEntities(searchterm, callback) {
 	var parameters = querystring.stringify({
 		q: searchterm,
 		result_type: 'mixed',
-		count: 4,
+		count: 100,
 		include_entities: true
 	});
 
