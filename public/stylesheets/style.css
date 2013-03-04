@@ -6,3 +6,9 @@ body {
 a {
   color: #f7f7f4;
 }
+.picture {
+  display: none;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}

@@ -16,6 +16,8 @@ var socketio 	= require('socket.io');
 
 var app = express();
 
+var debugtest = false;
+
 app.configure(function(){
 	app.set('port', process.env.PORT || 3000);
 	app.set('views', __dirname + '/views');
@@ -40,6 +42,7 @@ var server = http.createServer(app).listen(app.get('port'), function(){
 });
 
 var io = require('socket.io').listen(server);
+io.set('log level', 0); // geen socket.io debug info, thx!
 
 // authentication for other twitter requests
 var twitterOAuth = new OAuth(
@@ -54,7 +57,7 @@ var twitterOAuth = new OAuth(
 
 // some variable to hold the state of the app
 var State = {
-	searchterm: "#eten",
+	searchterm: "#picture",
 	pictures: []
 };
 
@@ -76,109 +79,122 @@ app.get('/server.js', function (req, res){
 
 
 // Begin met pictures te zoeken:
-// Doet dit iedere 20 seconden:
-findMorePictures();
-setInterval(findMorePictures, 1000*20);
+init();
 
-function findMorePictures(){
-	searchPictures(State.searchterm, function (err, pictures){
-		for(var i in pictures){
-			var picture = pictures[i];
-
-			if(!_.contains(State.pictures, picture)){
-				console.log("Adding " + picture);
-				State.pictures.push(picture);
-
-				// stuur maar direct naar de client ook:
-				io.sockets.emit('newpicture', {url: picture});
-			}
-		}
-	});
-}
-
-
-
-function searchPictures(searchterm, callback){
-
-	var allpictures = [];
-
-	findTwitterPictures(searchterm, function (err, pictures){
-		if(err) return callback(err);
-
-		allpictures = allpictures.concat(pictures.pictures);
-		extractInstagramUrls(pictures.instagram, function (err, instagramUrls){
-			if(err) return callback(err);
-
-			allpictures = allpictures.concat(instagramUrls);
-
-
-			return callback(null, allpictures);
-		});
-	});
-}
-
-
-function findTwitterPictures(searchterm, callback) {
-	findTwitterEntities(searchterm, function (err, entities) {
-		if(err) return callback(err);
-
-		var pictureUrls = [];
-		var instagramUrls = [];
-
-		for(var i in entities){
-			var entity = entities[i];
-			if(entity.media){
-				for(var j in entity.media){
-					var media = entity.media[j];
-					if(media.type == 'photo'){
-						pictureUrls.push(media.media_url);
-					}
-				}
-			}
-
-			if(entity.urls){
-				for(var j in entity.urls){
-					var url = entity.urls[j];
-					if(url.expanded_url.match(/http(s)?:\/\/instagr.am\/.+/i)){
-						instagramUrls.push(url.expanded_url);
-					}
-				}
-			}
-		}
-
-		callback(null, {
-			pictures: pictureUrls,
-			instagram: instagramUrls
-		});
-
-	});
-
-}
-
-function findTwitterEntities(searchterm, callback) {
+function init(){
+	// 1.) Zoek naar pictures met bepaald hashtag:
 	var parameters = querystring.stringify({
-		q: searchterm,
+		q: State.searchterm,
 		result_type: 'mixed',
-		count: 100,
+		count: 20,
 		include_entities: true
 	});
 
 	twitterOAuth.getProtectedResource('https://api.twitter.com/1.1/search/tweets.json?' + parameters, "GET", config.twitter.token, config.twitter.secret,
 		function (err, data, res){
-			if(err) return callback(err);
+			if(err) return console.log(err);
 
 			data = JSON.parse(data);
-
 			var tweets = data.statuses;
-			var entities = new Array();
-			for(var i in tweets){
-				entities.push(tweets[i].entities);
-			}
-			callback(null, entities);
+
+			async.forEach(tweets, function (tweet, c){
+				getPictureUrlsFromTweet(tweet, function (err, pictures){
+					if(err) return c(err);
+
+					//console.log(pictures);
+
+					for(var i in pictures)
+						addPicture(pictures[i]);
+
+					c(null);
+				});
+			}, function (err){
+				if(err) return console.log(err);
+			});
 		}
 	);
+
+
+	// 2.) Luister ook naar nieuwe pictures die binnenkomen:
+	var parameters = querystring.stringify({
+		track: State.searchterm
+	});
+
+	var twitterhose = twitterOAuth.get('https://stream.twitter.com/1.1/statuses/filter.json?' + parameters, config.twitter.token, config.twitter.secret);
+	twitterhose.addListener('response', function (res){
+		res.setEncoding('utf8');
+		res.addListener('data', function (chunk){
+
+			try{
+				var tweet = JSON.parse(chunk);
+
+				// extract picture urls:
+				getPictureUrlsFromTweet(tweet, function (err, pictures){
+					if(err) return console.log(err);
+
+					for(var i in pictures)
+						addPicture(pictures[i]);
+				});
+			}catch(err){}
+		});
+
+		res.addListener('end', function(){
+			console.log("Twitterhose broke down");
+		});
+	});
+	twitterhose.end();
+
+
 }
 
+
+function addPicture(picture){
+	console.log("Adding " + picture);
+	State.pictures.push(picture);
+	// stuur maar direct naar de client ook:
+	io.sockets.emit('newpicture', {url: picture});
+}
+
+/**
+ * Picture extraction functions:
+ */
+function getPictureUrlsFromTweet(tweet, callback){
+	var pictureUrls = [];
+
+
+	//pictures en urls zitten in tweet.entities:
+	if(tweet.entities.media){
+		for(var j in tweet.entities.media){
+			var media = tweet.entities.media[j];
+			if(media.type == 'photo'){
+				pictureUrls.push(media.media_url);
+			}
+		}
+	}
+
+	// we gaan ook op zoek naar de instagram urls:
+	var instagramUrls = [];
+
+	if(tweet.entities.urls){
+		for(var j in tweet.entities.urls){
+			var url = tweet.entities.urls[j];
+			if(url.expanded_url.match(/http(s)?:\/\/instagr.am\/.+/i)){
+				instagramUrls.push(url.expanded_url);
+			}
+		}
+	}
+
+	// de instagram urls parsen:
+	extractInstagramUrls(instagramUrls, function (err, extractedUrls){
+		if(err) return callback(err);
+
+		// urls toevoegen aan pictureUrls:
+		pictureUrls = pictureUrls.concat(extractedUrls);
+
+		// done:
+		callback(null, pictureUrls);
+	});
+}
 
 function extractInstagramUrls(urls, callback){
 	var extractedUrls = [];
@@ -190,6 +206,8 @@ function extractInstagramUrls(urls, callback){
 			c(null);
 		});
 	}, function (err){
+		if(err) return callback(err);
+
 		callback(null, extractedUrls);
 	});
 }
@@ -202,9 +220,13 @@ function extractInstagramUrl(url, callback){
 		if(res.headers.location){
 			extractInstagramUrl(res.headers.location, callback);
 		}else{
-			var $ = cheerio.load(res.body);
-			var extractedUrl = $("#media_photo .photo").attr('src');
-			callback(null, extractedUrl);
+			try{
+				var $ = cheerio.load(res.body);
+				var extractedUrl = $("#media_photo .photo").attr('src');
+				callback(null, extractedUrl);
+			}catch(err){
+				callback(err);
+			}
 		}
 	});
 }
