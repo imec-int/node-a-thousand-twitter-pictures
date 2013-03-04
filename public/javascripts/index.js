@@ -22,6 +22,16 @@ App = {
 		$("#start").click(function (event){
 			App.flashImages();
 		});
+
+		// ook de server kan dit in gang steken
+		App.socket.on('start', function (data) {
+			App.flashImages();
+		})
+
+		// doe dit weg als je niet wilt dat het begint bij het laden van de pagina:
+		setTimeout(function(){
+			App.flashImages();
+		},500);
 	},
 
 	addPicture: function(url){

@@ -76,6 +76,11 @@ app.get('/server.js', function (req, res){
 	res.send("App.alreadyfoundpictures = " + JSON.stringify(State.pictures) + ";");
 });
 
+app.get('/start', function (req, res){
+	res.json("OK");
+	io.sockets.emit('start', {});
+});
+
 
 // Begin met pictures te zoeken:
 init();
