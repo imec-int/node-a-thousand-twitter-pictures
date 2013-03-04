@@ -51,8 +51,10 @@ App = {
 
 	showNextImage: function(i){
 		if(i < App.imageElements.length){
-			if(App.imageElements[i-1])
+			if(App.imageElements[i-1]){
 				App.imageElements[i-1].hide();
+				App.imageElements[i-1].remove();
+			}
 			App.imageElements[i].show();
 			i++;
 		}
