@@ -5,6 +5,13 @@ exports.twitter = {
 	secret: 		""
 }
 
+exports.twitter2 = {
+	consumerKey: 	"",
+	consumerSecret: "",
+	token: 			"",
+	secret: 		""
+}
+
 exports.app = {
-	searchterms: ["#iminds", "#superminds", "#pictures", "#photos", "#photo"]
+	searchterms: ["#iminds", "#superminds", "@iMinds", "#mixbe", "@mixbe"]
 }

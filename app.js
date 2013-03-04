@@ -86,6 +86,13 @@ app.get('/start', function (req, res){
 init();
 
 function init(){
+	startSimpleSearch();
+	startSearchHose();
+	startOnePercenthose();
+}
+
+
+function startSimpleSearch(){
 	// 1.) Zoek naar pictures met bepaald hashtag:
 	var parameters = querystring.stringify({
 		q: config.app.searchterms.join(' OR '),
@@ -117,8 +124,10 @@ function init(){
 			});
 		}
 	);
+}
 
 
+function startSearchHose(){
 	// 2.) Luister ook naar nieuwe pictures die binnenkomen:
 	var parameters = querystring.stringify({
 		track: config.app.searchterms.join(',')
@@ -126,9 +135,9 @@ function init(){
 
 	var twitterhose = twitterOAuth.get('https://stream.twitter.com/1.1/statuses/filter.json?' + parameters, config.twitter.token, config.twitter.secret);
 	twitterhose.addListener('response', function (res){
+		console.log("searchhose started");
 		res.setEncoding('utf8');
 		res.addListener('data', function (chunk){
-
 			try{
 				var tweet = JSON.parse(chunk);
 
@@ -147,8 +156,48 @@ function init(){
 		});
 	});
 	twitterhose.end();
+}
 
 
+function startOnePercenthose(){
+	if(config.twitter2.token && config.twitter2.secret){
+		// need a second account for a second streaming connection:
+		var twitterOAuth2 = new OAuth(
+			"https://api.twitter.com/oauth/request_token",
+			"https://api.twitter.com/oauth/access_token",
+			config.twitter2.consumerKey,
+			config.twitter2.consumerSecret,
+			"1.0",
+			null,
+			"HMAC-SHA1"
+		);
+
+		// 3.) de 1% hose
+		var onepercenthose = twitterOAuth2.get('https://stream.twitter.com/1.1/statuses/sample.json', config.twitter2.token, config.twitter2.secret);
+		onepercenthose.addListener('response', function (res){
+			console.log("onepercenthose started");
+			res.setEncoding('utf8');
+			res.addListener('data', function (chunk){
+
+				try{
+					var tweet = JSON.parse(chunk);
+
+					// extract picture urls:
+					getPictureUrlsFromTweet(tweet, function (err, pictures){
+						if(err) return console.log(err);
+
+						for(var i in pictures)
+							addPicture(pictures[i]);
+					});
+				}catch(err){}
+			});
+
+			res.addListener('end', function(){
+				console.log("onepercenthose broke down");
+			});
+		});
+		onepercenthose.end();
+	}
 }
 
 
