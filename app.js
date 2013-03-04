@@ -154,10 +154,13 @@ function init(){
 
 function addPicture(picture){
 	if(picture){
-		console.log("Adding " + picture);
-		State.pictures.push(picture);
-		// stuur maar direct naar de client ook:
-		io.sockets.emit('newpicture', {url: picture});
+
+		if(!_.contains(State.pictures, picture)){
+			console.log("Adding " + picture);
+			State.pictures.push(picture);
+			// stuur maar direct naar de client ook:
+			io.sockets.emit('newpicture', {url: picture});
+		}
 	}
 }
 
