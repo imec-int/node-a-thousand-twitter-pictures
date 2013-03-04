@@ -2,6 +2,9 @@
 
 Application to flash lots of twitter pictures across the screen
 
+## A demo on Youtube ##
+[demo](http://www.youtube.com/watch?v=eEODXOIJ_Do)
+
 ## Setup ##
 
 #### config.js ####
