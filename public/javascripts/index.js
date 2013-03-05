@@ -3,6 +3,8 @@ App = {
 
 	intervalTime: 50,
 
+	doSpecial: false,
+
 	pageloaded: function() {
 		console.log("page loaded");
 
@@ -65,7 +67,7 @@ App = {
 			i++;
 		}
 
-		if(important){
+		if(important && App.doSpecial){
 			setTimeout(function (){
 				App.showNextImage(i)
 			}, App.intervalTime*6);
