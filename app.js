@@ -72,6 +72,13 @@ app.get('/', function (req, res){
 	});
 });
 
+
+app.get('/filter', function (req, res){
+	res.render('index2', {
+		title: 'A thousand twitter pictures'
+	});
+});
+
 // Javascript die alle urls bevat van pictures die al gevonden zijn:
 app.get('/server.js', function (req, res){
 	// interweave the important pictures with the onepercentpictures:
