@@ -13,5 +13,6 @@ exports.twitter2 = {
 }
 
 exports.app = {
-	searchterms: ["#iminds", "#superminds", "@iMinds", "#mixbe", "@mixbe"]
+	searchterms: ["#iminds", "#superminds", "@iMinds", "#mixbe", "@mixbe"],
+	maximumpictures: 2000
 }

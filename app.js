@@ -57,7 +57,8 @@ var twitterOAuth = new OAuth(
 
 // some variable to hold the state of the app
 var State = {
-	pictures: []
+	onepercentpictures: [],
+	importantpictures: []
 };
 
 /**
@@ -73,7 +74,33 @@ app.get('/', function (req, res){
 
 // Javascript die alle urls bevat van pictures die al gevonden zijn:
 app.get('/server.js', function (req, res){
-	res.send("App.alreadyfoundpictures = " + JSON.stringify(State.pictures) + ";");
+	// interweave the important pictures with the onepercentpictures:
+
+	var allpictures = [];
+
+	var offset = 100;
+
+	var insertEveryXpictures = (State.onepercentpictures.length - offset)/State.importantpictures.length;
+
+	var i = 0;
+	var n = 1;
+	for(var x in State.onepercentpictures){
+		if(x > (offset + insertEveryXpictures*n) ){
+			n++;
+			allpictures.push(State.importantpictures[i]);
+			i++;
+		}
+
+		allpictures.push(State.onepercentpictures[x]);
+	}
+
+	// possible the rest of the importantpictures
+	while(i < State.importantpictures.length){
+		allpictures.push(State.importantpictures[i]);
+		i++;
+	}
+
+	res.send("App.alreadyfoundpictures = " + JSON.stringify(allpictures) + ";");
 });
 
 app.get('/start', function (req, res){
@@ -115,7 +142,7 @@ function startSimpleSearch(){
 					//console.log(pictures);
 
 					for(var i in pictures)
-						addPicture(pictures[i]);
+						addPicture(pictures[i], State.importantpictures);
 
 					c(null);
 				});
@@ -146,7 +173,7 @@ function startSearchHose(){
 					if(err) return console.log(err);
 
 					for(var i in pictures)
-						addPicture(pictures[i]);
+						addPicture(pictures[i], State.importantpictures);
 				});
 			}catch(err){}
 		});
@@ -187,7 +214,7 @@ function startOnePercenthose(){
 						if(err) return console.log(err);
 
 						for(var i in pictures)
-							addPicture(pictures[i]);
+							addPicture(pictures[i], State.onepercentpictures);
 					});
 				}catch(err){}
 			});
@@ -201,15 +228,42 @@ function startOnePercenthose(){
 }
 
 
-function addPicture(picture){
+function addPicture(picture, array){
 	if(picture){
 
-		if(!_.contains(State.pictures, picture)){
-			console.log("Adding " + picture);
-			State.pictures.push(picture);
+		if(!_.contains(array, picture)){
+
+			var arrayname = "";
+			if(array == State.onepercentpictures)
+				arrayname = "onepercentpictures";
+			if(array == State.importantpictures)
+				arrayname = "importantpictures";
+
+			console.log("Adding to "+arrayname+" " + picture);
+			array.push(picture);
 			// stuur maar direct naar de client ook:
 			io.sockets.emit('newpicture', {url: picture});
+
+			cleanPictures();
 		}
+	}
+}
+
+function cleanPictures(){
+	//cleans up the pictures taking into account the maximumpictures settings from the config file:
+
+	if( State.importantpictures.length > config.app.maximumpictures ){
+		State.importantpictures = State.importantpictures.slice(-config.app.maximumpictures);
+	}
+
+	var picturesLeftToFill = config.app.maximumpictures - State.importantpictures.length;
+
+	if( State.onepercentpictures.length > picturesLeftToFill ){
+
+		State.onepercentpictures = State.onepercentpictures.slice(-picturesLeftToFill)
+
+		if(picturesLeftToFill == 0)
+			State.onepercentpictures = [];
 	}
 }
 
