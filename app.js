@@ -87,16 +87,16 @@ app.get('/server.js', function (req, res){
 	for(var x in State.onepercentpictures){
 		if(x > (offset + insertEveryXpictures*n) ){
 			n++;
-			allpictures.push(State.importantpictures[i]);
+			allpictures.push({url:State.importantpictures[i], important: true});
 			i++;
 		}
 
-		allpictures.push(State.onepercentpictures[x]);
+		allpictures.push({url:State.onepercentpictures[x], important: false});
 	}
 
 	// possible the rest of the importantpictures
 	while(i < State.importantpictures.length){
-		allpictures.push(State.importantpictures[i]);
+		allpictures.push({url:State.importantpictures[i], important: true});
 		i++;
 	}
 
@@ -234,15 +234,18 @@ function addPicture(picture, array){
 		if(!_.contains(array, picture)){
 
 			var arrayname = "";
+			var important = false;
 			if(array == State.onepercentpictures)
 				arrayname = "onepercentpictures";
-			if(array == State.importantpictures)
+			if(array == State.importantpictures){
 				arrayname = "importantpictures";
+				var important = true;
+			}
 
 			console.log("Adding to "+arrayname+" " + picture);
 			array.push(picture);
 			// stuur maar direct naar de client ook:
-			io.sockets.emit('newpicture', {url: picture});
+			io.sockets.emit('newpicture', {url: picture, important: important});
 
 			cleanPictures();
 		}

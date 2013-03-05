@@ -11,12 +11,12 @@ App = {
 
 		// on socket newpicture
 		App.socket.on('newpicture', function (data) {
-			App.addPicture(data.url)
+			App.addPicture(data.url, data.important)
 		});
 
 		//
 		for(var i in App.alreadyfoundpictures){
-			App.addPicture(App.alreadyfoundpictures[i]);
+			App.addPicture(App.alreadyfoundpictures[i].url, App.alreadyfoundpictures[i].important);
 		}
 
 		$("#start").click(function (event){
@@ -34,10 +34,13 @@ App = {
 		},500);
 	},
 
-	addPicture: function(url){
+	addPicture: function(url, important){
 		var image = new Image();
 		image.onload = function(){
 			var imageElement = $(document.createElement('img')).attr('src', url).addClass('picture');
+			if(important)
+				imageElement.attr("important", "true");
+
 			App.imageElements.push(imageElement);
 
 			$("#pictures").append(imageElement);
@@ -50,18 +53,28 @@ App = {
 	},
 
 	showNextImage: function(i){
+		var important = false;
 		if(i < App.imageElements.length){
 			if(App.imageElements[i-1]){
 				App.imageElements[i-1].hide();
 				App.imageElements[i-1].remove();
 			}
 			App.imageElements[i].show();
+			if( App.imageElements[i].attr('important') )
+				important = true;
 			i++;
 		}
 
-		setTimeout(function (){
-			App.showNextImage(i)
-		}, App.intervalTime);
+		if(important){
+			setTimeout(function (){
+				App.showNextImage(i)
+			}, App.intervalTime*6);
+		}else{
+			setTimeout(function (){
+				App.showNextImage(i)
+			}, App.intervalTime);
+		}
+
 	}
 };
 
